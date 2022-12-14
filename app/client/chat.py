@@ -259,7 +259,7 @@ class Chat(QtWidgets.QMainWindow, object):
                 user_to_remove = None
 
                 for user in self.online_users_list:
-                    if payload["username"] in user.login:
+                    if payload["username"] == user.login:
                         self.online_users_list.remove(user)
                         user_to_remove = user
 
