@@ -1,6 +1,7 @@
 import os
 import sqlite3
-from .models import User
+import datetime
+from .models import User, Message
 
 PATH = os.path.realpath("")
 
@@ -13,6 +14,8 @@ class Dispatcher:
         self.create_db_tables()
         self.cursor.execute("SELECT * FROM users")
         self.users = [User(*result) for result in self.cursor.fetchall()]
+        self.cursor.execute("SELECT * FROM messages")
+        self.messages = [Message(*result) for result in self.cursor.fetchall()]
 
     def create_db_tables(self):
         self.cursor.execute("""
@@ -22,6 +25,16 @@ class Dispatcher:
                 password TEXT,
                 status TEXT
             );
+        """)
+        self.sql_conn.commit()
+        self.cursor.execute("""
+            CREATE TABLE IF NOT EXISTS messages(
+                mid INT PRIMARY KEY,
+                uid_from INT,
+                uid_to INT,
+                message TEXT,
+                sent_at TEXT
+            )
         """)
         self.sql_conn.commit()
 
@@ -52,11 +65,18 @@ class Dispatcher:
         return new_user
 
     def send_message(self, from_user, to_user, message):
+        sent_at = datetime.datetime.now().strftime("%d.%m.%y %H:%M")
+        new_message = Message(len(self.messages) + 1, from_user, to_user, message, sent_at)
+        self.cursor.execute("INSERT INTO messages VALUES(?, ?, ?, ?, ?)", tuple(new_message))
+        self.sql_conn.commit()
+        self.messages.append(message)
         for conn in self.connections:
-            if not conn.user.login == to_user:
-                continue
+            if conn.user.login == to_user:
+                conn.new_message(from_user, message, sent_at)
 
-            conn.new_message(from_user, message)
+    def user_messages(self, user):
+        self.cursor.execute(f"SELECT * FROM messages WHERE uid_from = '{user.login}' OR uid_to = '{user.login}'")
+        return [list(Message(*result)) for result in self.cursor.fetchall()]
 
     def broadcast_user_joined(self, new_user):
         for conn in self.connections:

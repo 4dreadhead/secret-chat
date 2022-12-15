@@ -11,6 +11,7 @@ class ClientHandler:
         self.login = login
         self.password = password
         self.online_users = []
+        self.messages = []
 
         self.cid = None
         self.auth_token = None
@@ -42,6 +43,8 @@ class ClientHandler:
                 self.after_auth(result)
             case "auth_failed":
                 pass
+            case "user_messages":
+                self.get_messages(result)
             case "online_users":
                 self.set_online_users(result)
             case "user_joined":
@@ -69,6 +72,13 @@ class ClientHandler:
         self.session_key = result["session_key"]
 
         self.pack_and_send(
+            method="user_messages",
+            auth_token=self.auth_token
+        )
+
+    def get_messages(self, result):
+        self.messages = result["messages"]
+        self.pack_and_send(
             method="online_users",
             auth_token=self.auth_token,
         )
@@ -89,6 +99,7 @@ class ClientHandler:
                 "login": self.login,
                 "password": self.password,
                 "online_users": self.online_users,
+                "messages": self.messages,
                 "session_key": self.session_key
             }
         )
@@ -142,6 +153,7 @@ class ClientHandler:
             {
                 "method": "new_message",
                 "from_user": result["from_user"],
-                "message": result["message"]
+                "message": result["message"],
+                "sent_at": result["sent_at"]
             }
         )

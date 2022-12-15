@@ -25,6 +25,8 @@ class ConnectionHandler:
                     self.authorize_client(result)
                 case "online_users":
                     self.online_users(result)
+                case "user_messages":
+                    self.user_messages(result)
                 case "send_message":
                     self.send_message(result)
                 case _:
@@ -112,6 +114,13 @@ class ConnectionHandler:
         online_users = self.dispatcher.online_users()
         self.pack_and_send(method="online_users", online_users=online_users)
 
+    def user_messages(self, result):
+        if not self.verify_auth_token(result):
+            return
+
+        messages = self.dispatcher.user_messages(self.user)
+        self.pack_and_send(method="user_messages", messages=messages)
+
     def user_joined(self, new_user):
         self.pack_and_send(
             method="user_joined",
@@ -133,10 +142,11 @@ class ConnectionHandler:
 
         self.dispatcher.send_message(self.user.login, result["to_user"], result["message"])
 
-    def new_message(self, from_user, message):
+    def new_message(self, from_user, message, sent_at):
         # TODO: add encryption
         self.pack_and_send(
             method="new_message",
             from_user=from_user,
-            message=message
+            message=message,
+            sent_at=sent_at
         )

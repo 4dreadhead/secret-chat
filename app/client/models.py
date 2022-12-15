@@ -1,8 +1,10 @@
 class Message:
-    def __init__(self, from_user, text):
+    def __init__(self, from_user, to_user, text, sent_at):
         self.text = text
         self.hash = "in_development"
         self.from_user = from_user
+        self.to_user = to_user
+        self.sent_at = sent_at
 
 
 class User:
@@ -10,5 +12,5 @@ class User:
         self.login = login
         self.messages = []
 
-    def add_message(self, text, from_user):
-        self.messages.append(Message(text, from_user))
+    def add_message(self, message):
+        self.messages.append(message)
