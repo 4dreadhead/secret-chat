@@ -26,14 +26,14 @@ class ChatClient(WebSocketClientProtocol):
 
 async def check_queue():
     while True:
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(0.25)
         if ClientHandler.handler_started:
             handler = ClientHandler.handler_running
             break
 
     while True:
         if handler.queue_in.empty():
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(0.25)
             continue
 
         payload = handler.queue_in.get()

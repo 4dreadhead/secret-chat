@@ -7,23 +7,26 @@ class ChatServer(WebSocketServerProtocol):
     def __init__(self, dp):
         super().__init__()
         self.handler = ConnectionHandler(self, dp)
+        self.color = "7"
 
     async def onConnect(self, request):
-        print(f"Client connecting: {request.peer}")
+        print(f"\033[37mClient connecting: {request.peer}")
 
     async def onOpen(self):
         self.handler.cid = str(uuid.uuid4())
-        print(f"Connection opened: {self.handler.cid}")
+        self.color = self.handler.dispatcher.current_color()
+        print(f"\033[3{self.color}mConnection opened: {self.handler.cid}")
 
+        self.handler.color = self.color
         self.handler.dispatcher.connections.append(self.handler)
         self.handler.first_connect()
 
     async def onMessage(self, payload, *args):
-        print(f"Received message: {payload.decode('utf-8')}")
+        print(f"\033[3{self.color}mReceived message: {payload.decode('utf-8')}")
         self.handler.handle_message(payload)
 
     async def onClose(self, wasClean, code, reason):
-        print(f"Connection {self.handler.cid} closed.")
+        print(f"\033[3{self.color}mConnection {self.handler.cid} closed.")
         self.handler.dispatcher.connections.remove(self.handler)
         if self.handler.user:
             self.handler.dispatcher.broadcast_user_left(self.handler.user.login)
