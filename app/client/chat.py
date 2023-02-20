@@ -4,6 +4,7 @@ import uuid
 from PyQt6 import QtCore, QtWidgets
 from .login_form import LoginForm
 from .models import User, Message
+from .styles import *
 from app.crypto import SHA1
 
 
@@ -21,6 +22,7 @@ class Chat(QtWidgets.QMainWindow, object):
         self.connection_thread = None
         self.online_users_list = []
         self.authorized = False
+        self.current_item = None
         self.me = None
         self.login_form = None
         self.timer = QtCore.QTimer()
@@ -37,19 +39,24 @@ class Chat(QtWidgets.QMainWindow, object):
 
     def setup_ui(self):
         self.setObjectName("MainWindow")
+        self.setWindowTitle("Secret Chat")
+        self.setStyleSheet(WINDOW)
         self.resize(1108, 570)
         self.setMaximumSize(1108, 570)
         self.setMinimumSize(760, 570)
         self.centralwidget = QtWidgets.QWidget(self)
         self.centralwidget.setObjectName("centralwidget")
+        self.centralwidget.setStyleSheet(BACKGROUND)
 
         self.new_message = QtWidgets.QPlainTextEdit(self.centralwidget)
         self.new_message.setGeometry(QtCore.QRect(20, 450, 531, 101))
         self.new_message.setObjectName("textEdit")
+        self.new_message.setStyleSheet(TEXT_AREA)
 
         self.send_message = QtWidgets.QPushButton(self.centralwidget)
         self.send_message.setGeometry(QtCore.QRect(560, 450, 191, 51))
         self.send_message.setObjectName("pushButton")
+        self.send_message.setStyleSheet(BUTTON)
 
         # self.select_file = QtWidgets.QPushButton(self.centralwidget)
         # self.select_file.setGeometry(QtCore.QRect(560, 510, 91, 41))
@@ -58,31 +65,38 @@ class Chat(QtWidgets.QMainWindow, object):
         self.get_hash = QtWidgets.QPushButton(self.centralwidget)
         self.get_hash.setGeometry(QtCore.QRect(560, 510, 191, 41))
         self.get_hash.setObjectName("pushButton_3")
+        self.get_hash.setStyleSheet(BUTTON)
 
         self.online_users = QtWidgets.QListWidget(self.centralwidget)
         self.online_users.setGeometry(QtCore.QRect(770, 60, 321, 251))
         self.online_users.setObjectName("listWidget")
+        self.online_users.setStyleSheet(USERS_AREA)
 
         self.session_key = QtWidgets.QTextBrowser(self.centralwidget)
         self.session_key.setGeometry(QtCore.QRect(770, 330, 321, 101))
         self.session_key.setObjectName("plainTextEdit")
+        self.session_key.setStyleSheet(TEXT_AREA)
 
         self.hash = QtWidgets.QPlainTextEdit(self.centralwidget)
         self.hash.setGeometry(QtCore.QRect(770, 450, 321, 101))
         self.hash.setObjectName("plainTextEdit_2")
+        self.hash.setStyleSheet(TEXT_AREA)
 
         self.login = QtWidgets.QPushButton(self.centralwidget)
         self.login.setGeometry(QtCore.QRect(940, 10, 151, 31))
         self.login.setObjectName("pushButton_4")
+        self.login.setStyleSheet(BUTTON)
 
         self.status = QtWidgets.QLabel(self.centralwidget)
         self.status.setGeometry(QtCore.QRect(770, 10, 151, 31))
         self.status.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         self.status.setObjectName("textBrowser")
+        self.status.setStyleSheet(TEXT_AREA_SMALL)
 
         self.messages = QtWidgets.QListWidget(self.centralwidget)
         self.messages.setGeometry(QtCore.QRect(20, 10, 731, 421))
         self.messages.setObjectName("listWidget_2")
+        self.messages.setStyleSheet(TEXT_AREA)
 
         self.setCentralWidget(self.centralwidget)
         QtCore.QMetaObject.connectSlotsByName(self)
@@ -98,36 +112,46 @@ class Chat(QtWidgets.QMainWindow, object):
         item.username = user
 
         widget = QtWidgets.QWidget()
-        widget_text = QtWidgets.QLabel(user.login)
-        widget_text.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        widget_layout = QtWidgets.QHBoxLayout()
-        widget_layout.addWidget(widget_text)
-        widget_layout.addStretch()
+        widget_user = QtWidgets.QLabel(user.login)
+        widget_user.setMaximumWidth(250)
+        widget_user.setWordWrap(True)
+        widget_layout = QtWidgets.QVBoxLayout()
+        widget_layout.addWidget(widget_user)
 
+        widget_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
+        widget_layout.setSpacing(0)
+        widget_layout.setContentsMargins(7, 7, 7, 0)
+        widget_user.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
+        widget_user.setStyleSheet(USERS)
+
+        widget_layout.addStretch()
         widget.setLayout(widget_layout)
         item.setSizeHint(widget.sizeHint())
 
         self.online_users.addItem(item)
+        self.online_users.setItemWidget(item, widget)
+        self.online_users.scrollToBottom()
         self.online_users.itemClicked.connect(self.select_user)
-        self.online_users.setItemWidget(item, widget_text)
 
     def set_message(self, from_user, message, sent_at):
         item = QtWidgets.QListWidgetItem()
         item.username = from_user
 
         widget = QtWidgets.QWidget()
-        widget_user = QtWidgets.QLabel(f"[ {from_user} ]  [ {sent_at} ]")
-        widget_message = QtWidgets.QLabel(message)
+        widget_message = QtWidgets.QLabel(f"[ {from_user} ]  [ {sent_at} ]\n\n{message}")
+        widget_message.setMaximumWidth(500)
+        widget_message.setWordWrap(True)
         widget_layout = QtWidgets.QVBoxLayout()
-        widget_layout.addWidget(widget_user, stretch=1)
         widget_layout.addWidget(widget_message)
 
         if from_user == self.me.login:
-            widget_user.setAlignment(QtCore.Qt.AlignmentFlag.AlignRight)
+            widget_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignRight)
             widget_message.setAlignment(QtCore.Qt.AlignmentFlag.AlignRight)
+            widget_message.setStyleSheet(MESSAGES_MY)
         else:
-            widget_user.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
+            widget_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
             widget_message.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
+            widget_message.setStyleSheet(MESSAGES_OTHER)
 
         widget_layout.addStretch()
         widget.setLayout(widget_layout)
@@ -142,6 +166,10 @@ class Chat(QtWidgets.QMainWindow, object):
             return
         if self.current_user == item.username:
             return
+        if self.current_item:
+            self.online_users.itemWidget(self.current_item).findChild(QtWidgets.QLabel).setStyleSheet(USERS)
+        self.current_item = item
+        self.online_users.itemWidget(item).findChild(QtWidgets.QLabel).setStyleSheet(USER_SELECTED)
         self.switch_to_user(item.username)
 
     def switch_to_user(self, user):
@@ -162,9 +190,10 @@ class Chat(QtWidgets.QMainWindow, object):
             if self.connection_thread:
                 self.connection_thread = None
 
-            self.status.setText("Вы не авторизованы")
+            self.status.setText("UNAUTHORIZED")
             self.login.setText("Войти")
 
+            self.current_item = None
             self.current_user = None
             self.authorized = False
 
@@ -248,6 +277,9 @@ class Chat(QtWidgets.QMainWindow, object):
 
     def accept_message(self, payload):
         accepted_message = Message.find(self.pending_messages_list, payload["mid"])
+        if not accepted_message:
+            print("Warning: Can't find message to accept.")
+            return
         user = User.find(self.online_users_list, accepted_message.to_user)
         self.add_message_to_user(accepted_message, user)
         self.set_message(self.me.login, accepted_message.text, accepted_message.sent_at)
@@ -274,7 +306,9 @@ class Chat(QtWidgets.QMainWindow, object):
             self.set_online_user(user)
             for message in self.messages_list:
                 self.add_message_to_user(message, user)
-        self.current_user = self.online_users_list[0]
+        self.current_item = self.online_users.item(0)
+        self.online_users.itemWidget(self.current_item).findChild(QtWidgets.QLabel).setStyleSheet(USER_SELECTED)
+        self.switch_to_user(self.online_users_list[0])
 
         for message in self.current_user.messages:
             self.set_message(message.from_user, message.text, message.sent_at)
@@ -356,9 +390,8 @@ class Chat(QtWidgets.QMainWindow, object):
 
     def re_translate_ui(self):
         _translate = QtCore.QCoreApplication.translate
-        self.setWindowTitle(_translate("MainWindow", "Чат"))
         self.send_message.setText(_translate("MainWindow", "Отправить"))
         # self.select_file.setText(_translate("MainWindow", "Файл"))
         self.get_hash.setText(_translate("MainWindow", "Хэш"))
         self.login.setText(_translate("MainWindow", "Войти"))
-        self.status.setText("Вы не авторизованы")
+        self.status.setText("UNAUTHORIZED")
