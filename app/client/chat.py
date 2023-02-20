@@ -70,7 +70,7 @@ class Chat(QtWidgets.QMainWindow, object):
         self.online_users = QtWidgets.QListWidget(self.centralwidget)
         self.online_users.setGeometry(QtCore.QRect(770, 60, 321, 251))
         self.online_users.setObjectName("listWidget")
-        self.online_users.setStyleSheet(USERS_AREA)
+        self.online_users.setStyleSheet(LIST_AREA)
 
         self.session_key = QtWidgets.QTextBrowser(self.centralwidget)
         self.session_key.setGeometry(QtCore.QRect(770, 330, 321, 101))
@@ -96,7 +96,7 @@ class Chat(QtWidgets.QMainWindow, object):
         self.messages = QtWidgets.QListWidget(self.centralwidget)
         self.messages.setGeometry(QtCore.QRect(20, 10, 731, 421))
         self.messages.setObjectName("listWidget_2")
-        self.messages.setStyleSheet(TEXT_AREA)
+        self.messages.setStyleSheet(LIST_AREA)
 
         self.setCentralWidget(self.centralwidget)
         QtCore.QMetaObject.connectSlotsByName(self)

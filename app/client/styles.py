@@ -58,7 +58,7 @@ padding-bottom: 8px;
 padding-right: 7px;
 """
 
-USERS_AREA = """
+LIST_AREA = """
 QListWidget {
     background-color: #282c34;
     color: #c5c9d8;

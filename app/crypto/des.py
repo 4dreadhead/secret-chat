@@ -13,18 +13,20 @@ class Des:
     def decompose_message(message, f="utf-8"):
         match f:
             case "utf-8":
-                msg_bin = "".join([format(int(byte), "08b")
-                                   for byte in bytearray(message, "utf-8")])
+                msg_hex = message.encode("utf-8")
             case "hex":
-                msg_bin = "".join([format(int(byte, 16), "08b")
-                                   for byte in [message[i:i+2] for i in range(0, len(message), 2)]])
+                msg_hex = bytearray([int(message[i:i+2], 16) for i in range(0, len(message), 2)])
             case _:
-                raise ValueError("Incorrect data format.")
+                raise ValueError(f"Unknown data format: {f}")
 
-        return (msg_bin[i:i + 64].ljust(64, "0") for i in range(0, len(msg_bin), 64))
+        if len(msg_hex) % 8 != 0:
+            padding_length = 8 - len(msg_hex) % 8
+            msg_hex += bytearray([padding_length for _ in range(padding_length)])
 
-    @staticmethod
-    def compose_message(blocks, f="utf-8"):
+        msg_bin = "".join([format(i, "08b") for i in msg_hex])
+        return (msg_bin[i:i + 64] for i in range(0, len(msg_bin), 64))
+
+    def compose_message(self, blocks, f="utf-8"):
         result_bytes = bytearray()
         for i, block in enumerate(blocks):
             res = bytearray([int(block[i:i + 8], 2) for i in range(0, len(block), 8)])
@@ -37,19 +39,37 @@ class Des:
 
             result_bytes += res
 
+        padding_exists = self.test_padding(result_bytes)
+
+        if padding_exists:
+            result_bytes = result_bytes[0:-result_bytes[-1]]
+
         match f:
             case "hex":
-                result = "".join([format(byte, "02x") for byte in result_bytes if byte != 0x00])
+                result = "".join([format(byte, "02x") for byte in result_bytes])
 
             case "utf-8":
                 try:
                     result = result_bytes.decode("utf-8")
                 except UnicodeDecodeError:
-                    result = "".join([format(byte, "02x") for byte in result_bytes if byte != 0x00])
+                    result = "".join([format(byte, "02x") for byte in result_bytes])
 
             case _:
                 raise ValueError("Incorrect data format.")
         return result
+
+    @staticmethod
+    def test_padding(data):
+        value = data[-1]
+
+        if not 0 < value < 8:
+            return False
+
+        for i in range(value):
+            if data[-(i + 1)] != value:
+                return False
+
+        return True
 
     def encrypt(self, message):
         message_blocks = self.decompose_message(message, "utf-8")
