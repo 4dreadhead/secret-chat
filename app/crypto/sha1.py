@@ -3,27 +3,36 @@ class SHA1:
     M2DEG32 = 0xFFFFFFFF
 
     def __init__(self, data):
+        self.h = list(self.INIT_H)
+        self.blocks = []
+        self.update(data)
+
+    def update(self, data):
         if isinstance(data, str):
             data = data.encode("utf-8")
         if not isinstance(data, bytes):
             raise ValueError(f"Unexpected data type: {data.__class__}")
-        self.data = data
-        self.h = list(self.INIT_H)
-        self.padded_data = self.padding()
-        self.blocks = self.split_blocks()
+
+        padded_data = self.padding(data)
+        blocks = self.split_blocks(padded_data)
+
+        self.blocks.extend(blocks)
+        self.hashing_current_blocks()
 
     @classmethod
     def rotate(cls, n, b):
         return ((n << b) | (n >> (32 - b))) & cls.M2DEG32
 
-    def padding(self):
-        padding = b"\x80" + b"\x00" * (63 - (len(self.data) + 8) % 64)
-        size = int.to_bytes(8 * len(self.data), 8, "big")
-        padded_data = self.data + padding + size
+    @staticmethod
+    def padding(data):
+        padding = b"\x80" + b"\x00" * (63 - (len(data) + 8) % 64)
+        size = int.to_bytes(8 * len(data), 8, "big")
+        padded_data = data + padding + size
         return padded_data
 
-    def split_blocks(self):
-        return [self.padded_data[i:i+64] for i in range(0, len(self.padded_data), 64)]
+    @staticmethod
+    def split_blocks(blocks):
+        return [blocks[i:i+64] for i in range(0, len(blocks), 64)]
 
     def expand_block(self, block):
         w = [int.from_bytes(block[i:i+4], "big") for i in range(0, 128, 4)] + [0] * 64
@@ -31,9 +40,10 @@ class SHA1:
             w[i] = self.rotate((w[i - 3] ^ w[i - 8] ^ w[i - 14] ^ w[i - 16]), 1)
         return w
 
-    def to_hash(self):
+    def hashing_current_blocks(self):
         for block in self.blocks:
             expanded_block = self.expand_block(block)
+            self.blocks.remove(block)
             a, b, c, d, e = self.INIT_H
             for i in range(0, 80):
                 if 0 <= i < 20:
@@ -62,4 +72,6 @@ class SHA1:
                 self.h[3] + d & self.M2DEG32,
                 self.h[4] + e & self.M2DEG32,
             )
+
+    def to_hash(self):
         return "%08x%08x%08x%08x%08x" % tuple(self.h)

@@ -13,8 +13,8 @@ class RSA:
     def encrypt(self, message):
         return self.let_rsa(self.public_key, message)
 
-    def decrypt(self, ciphertext):
-        return self.let_rsa(self.private_key, ciphertext)
+    def decrypt(self, ciphertext, result_length=40):
+        return self.let_rsa(self.private_key, ciphertext, result_length)
 
     @staticmethod
     def generate_keypair():
@@ -37,10 +37,13 @@ class RSA:
         return (e, n), (d, n)
 
     @staticmethod
-    def let_rsa(given_key, message):
+    def let_rsa(given_key, message, result_length=None):
         if not given_key:
             raise ValueError("Set key first.")
 
         key, n = (int(i, 16) for i in given_key)
-        cipher = format(mod_exp(int(message, 16), key, n), 'x')
+        if result_length is None:
+            cipher = format(mod_exp(int(message, 16), key, n), 'x')
+        else:
+            cipher = format(mod_exp(int(message, 16), key, n), f'0{result_length}x')
         return cipher

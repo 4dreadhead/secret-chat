@@ -9,7 +9,7 @@ from app.crypto import SHA1
 
 
 class Chat(QtWidgets.QMainWindow, object):
-    TICK_INTERVAL = 250
+    TICK_INTERVAL = 150
 
     def __init__(self):
         super().__init__()
