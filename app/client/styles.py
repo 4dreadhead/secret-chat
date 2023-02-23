@@ -39,7 +39,7 @@ border-radius: 2px;
 MESSAGES_MY = """
 color: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #ffffff, stop:1 #f6eeff);
 background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #3a925e, stop:1 #317c4f);
-border: 2px solid #3d3145;
+border: 2px solid #0d3614;
 border-radius: 15px;
 padding-top: 8px;
 padding-left: 7px;
@@ -72,7 +72,7 @@ border-radius: 0px;
 USER_SELECTED = """
 color: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #ffffff, stop:1 #f6eeff);
 background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #3a925e, stop:1 #317c4f);
-border: 2px solid #3d3145;
+border: 2px solid #0d3614;
 border-radius: 8px;
 padding-top: 8px;
 padding-left: 7px;

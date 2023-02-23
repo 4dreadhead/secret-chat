@@ -135,7 +135,10 @@ class ClientHandler:
 
         for message in result["messages"]:
             message[3] = self.des.decrypt(message[3])
-            if self.rsa_decrypt.decrypt(message[5]) == SHA1(message[3]).to_hash():
+            # decrypted_hash = self.rsa_decrypt.decrypt(message[5])
+            decrypted_hash = self.rsa_encrypt.decrypt_signature(message[5])
+
+            if decrypted_hash == SHA1(message[3]).to_hash():
                 verified_messages.append(message)
             else:
                 bad_messages.append(message)
@@ -191,7 +194,8 @@ class ClientHandler:
     def send_message(self, username, message, mid, sha1_hash):
         encrypted = self.des.encrypt(message)
         try:
-            digital_signature = self.rsa_encrypt.encrypt(sha1_hash)
+            # digital_signature = self.rsa_encrypt.encrypt(sha1_hash)
+            digital_signature = self.rsa_decrypt.encrypt_signature(sha1_hash)
         except ValueError:
             return
 
@@ -230,7 +234,8 @@ class ClientHandler:
     def new_message(self, result):
         decrypted = self.des.decrypt(result["message"])
         sha1_hash = SHA1(decrypted).to_hash()
-        sha1_hash_from_remote = self.rsa_decrypt.decrypt(result["digital_signature"])
+        # sha1_hash_from_remote = self.rsa_decrypt.decrypt(result["digital_signature"])
+        sha1_hash_from_remote = self.rsa_encrypt.decrypt_signature(result["digital_signature"])
 
         if sha1_hash == sha1_hash_from_remote:
             self.pack_and_send(

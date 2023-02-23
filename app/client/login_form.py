@@ -1,6 +1,7 @@
 from PyQt6 import QtCore, QtWidgets
 import threading
 from .connection import run_client
+from .widgets import InputWithAction
 
 
 class LoginForm(QtWidgets.QMainWindow, object):
@@ -18,15 +19,17 @@ class LoginForm(QtWidgets.QMainWindow, object):
         self.groupBox = QtWidgets.QGroupBox(self.centralwidget)
         self.groupBox.setGeometry(QtCore.QRect(60, 40, 211, 51))
         self.groupBox.setObjectName("groupBox")
-        self.login_field = QtWidgets.QPlainTextEdit(self.groupBox)
+        self.login_field = InputWithAction(self.groupBox, None, filter_as="login")
         self.login_field.setGeometry(QtCore.QRect(0, 20, 211, 31))
         self.login_field.setObjectName("plainTextEdit")
+        self.login_field.setTabChangesFocus(True)
         self.groupBox_2 = QtWidgets.QGroupBox(self.centralwidget)
         self.groupBox_2.setGeometry(QtCore.QRect(60, 120, 211, 51))
         self.groupBox_2.setObjectName("groupBox_2")
-        self.password_field = QtWidgets.QPlainTextEdit(self.groupBox_2)
+        self.password_field = InputWithAction(self.groupBox_2, self.login, filter_as="password")
         self.password_field.setGeometry(QtCore.QRect(0, 20, 211, 31))
         self.password_field.setObjectName("plainTextEdit_2")
+        self.password_field.setTabChangesFocus(True)
         self.pushButton = QtWidgets.QPushButton(self.centralwidget)
         self.pushButton.setGeometry(QtCore.QRect(60, 220, 211, 31))
         self.pushButton.setObjectName("pushButton")

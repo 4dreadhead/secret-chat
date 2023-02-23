@@ -16,6 +16,12 @@ class RSA:
     def decrypt(self, ciphertext, result_length=40):
         return self.let_rsa(self.private_key, ciphertext, result_length)
 
+    def encrypt_signature(self, message):
+        return self.let_rsa(self.private_key, message)
+
+    def decrypt_signature(self, ciphertext, result_length=40):
+        return self.let_rsa(self.public_key, ciphertext, result_length)
+
     @staticmethod
     def generate_keypair():
         p, q = gen_prime(), gen_prime()

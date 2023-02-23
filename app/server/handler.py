@@ -138,7 +138,9 @@ class ConnectionHandler:
         self.pack_and_send(method="dh_accepted")
         self.connection_locked = False
 
-        print(f"\033[3{self.color}mSession key: {self.diffie_hellman.session_key}")
+        print(f"\033[3{self.color}m--- [ DIFFIE-HELLMAN FINISHED ] ---")
+        print(f"\033[3{self.color}mSession key: {''.join([format(b, '02x') for b in self.diffie_hellman.session_key])}")
+        print(f"\033[3{self.color}m-----------------------------------")
 
     def generate_auth_token(self):
         auth_token = json.dumps({
@@ -162,9 +164,10 @@ class ConnectionHandler:
         return False
 
     def bad_good(self, result):
-        print(f"\033[3{self.color}mClient reported that:")
-        print(f"\033[3{self.color}mMessages {result['bad_messages']} are bad")
-        print(f"\033[3{self.color}mMessages {result['good_messages']} are good")
+        print(f"\033[3{self.color}m--- [ CLIENT BAD MESSAGES REPORT ] ---")
+        print(f"\033[3{self.color}mBAD  messages {result['bad_messages']}")
+        print(f"\033[3{self.color}mGOOD messages {result['good_messages']}")
+        print(f"\033[3{self.color}m--------------------------------------")
         self.dispatcher.bad_messages(result['bad_messages'])
         self.dispatcher.good_messages(result['good_messages'])
 
@@ -182,7 +185,8 @@ class ConnectionHandler:
         messages = self.dispatcher.user_messages(self.user)
         for message in messages:
             message[3] = self.des.encrypt(message[3])
-            message[5] = self.rsa_client.encrypt(message[5])
+            # message[5] = self.rsa_client.encrypt(message[5])
+            message[5] = self.dispatcher.rsa_main.encrypt_signature(message[5])
         self.pack_and_send(method="user_messages", messages=messages)
 
     def user_joined(self, new_user):
@@ -210,7 +214,8 @@ class ConnectionHandler:
 
         decrypted = self.des.decrypt(result["message"])
         sha1_hash = SHA1(decrypted).to_hash()
-        sha1_hash_from_remote = self.dispatcher.rsa_main.decrypt(result["digital_signature"])
+        # sha1_hash_from_remote = self.dispatcher.rsa_main.decrypt(result["digital_signature"])
+        sha1_hash_from_remote = self.rsa_client.decrypt_signature(result["digital_signature"])
 
         if sha1_hash == sha1_hash_from_remote:
             message_id = self.dispatcher.send_message(self.user.login, result["to_user"], decrypted, sha1_hash)
@@ -226,12 +231,13 @@ class ConnectionHandler:
                 mid=result["mid"]
             )
             self.connection_locked = True
-            print(f"\033[3{self.color}m[ FAILED DECRYPTING MESSAGE ]")
+            print(f"\033[3{self.color}m--- [ FAILED DECRYPTING MESSAGE ] ---")
             print(f"\033[3{self.color}mciphertext: {result['message']}")
             print(f"\033[3{self.color}mdecrypted: {decrypted}")
             print(f"\033[3{self.color}msha1_hash from remote: {sha1_hash_from_remote}")
             print(f"\033[3{self.color}msha1_hash calculated:  {sha1_hash}")
-            print(f"\033[3{self.color}mdes key: {self.des.key.key_bin}")
+            print(f"\033[3{self.color}mdes key: {''.join([format(b, '02x') for b in self.des.key.key_bytes])}")
+            print(f"\033[3{self.color}m-------------------------------------")
 
     def send_accept_message(self, result):
         if not self.verify_auth_token(result):
@@ -268,7 +274,8 @@ class ConnectionHandler:
 
     def new_message(self, from_user, message, sent_at, sha1_hash, message_id):
         encrypted = self.des.encrypt(message)
-        digital_signature = self.rsa_client.encrypt(sha1_hash)
+        # digital_signature = self.rsa_client.encrypt(sha1_hash)
+        digital_signature = self.dispatcher.rsa_main.encrypt_signature(sha1_hash)
         self.pack_and_send(
             method="new_message",
             from_user=from_user,

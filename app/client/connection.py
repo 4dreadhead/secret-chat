@@ -21,7 +21,7 @@ class ChatClient(WebSocketClientProtocol):
 
     async def onClose(self, wasClean, code, reason):
         self.handler.close_connection()
-        self.loop.shutdown_asyncgens()
+        await self.loop.shutdown_asyncgens()
 
 
 async def check_queue():
