@@ -1,7 +1,7 @@
 from PyQt6 import QtCore, QtWidgets
 import threading
-from .connection import run_client
-from .widgets import InputWithAction
+from app.client.connection import run_client
+from app.client.qtapp.widgets import InputWithAction
 
 
 class LoginForm(QtWidgets.QMainWindow, object):

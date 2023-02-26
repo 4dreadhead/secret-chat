@@ -1,16 +1,18 @@
 from queue import Queue
 import datetime
 import uuid
-from PyQt6 import QtCore, QtWidgets
-from .login_form import LoginForm
-from .models import User, Message
-from .widgets import InputWithAction
-from .styles import *
+from PyQt6 import QtCore, QtWidgets, QtGui
+from app.client.qtapp.login_form import LoginForm
+from app.client.models import User, Message
+from app.client.qtapp.styles import *
+from app.client.qtapp.ui import UiMainWindow
 from app.crypto import SHA1
+from app.client.qtapp.widgets import SideGrip
 
 
-class Chat(QtWidgets.QMainWindow, object):
+class Chat(QtWidgets.QMainWindow, UiMainWindow, object):
     TICK_INTERVAL = 150
+    GRIP_SIZE = 1
 
     def __init__(self):
         super().__init__()
@@ -27,8 +29,102 @@ class Chat(QtWidgets.QMainWindow, object):
         self.me = None
         self.login_form = None
         self.timer = QtCore.QTimer()
-        self.setup_ui()
-        self.re_translate_ui()
+        self.setupUi(self)
+        QtCore.QMetaObject.connectSlotsByName(self)
+        self.online_users.setStyleSheet(LIST_AREA)
+        self.messages.setStyleSheet(LIST_AREA)
+        self.menu.clicked.connect(self.toggle_menu)
+        self.login.clicked.connect(self.open_login_form)
+        self.send_button.clicked.connect(self.send)
+        self.get_hash.clicked.connect(self.calculate_hash)
+        self.close_button.clicked.connect(self.close)
+        self.minimize.clicked.connect(self.showMinimized)
+        self.maximize.clicked.connect(self.toggle_maximized)
+        self.timer.timeout.connect(self.check_queue)
+        self.timer.start(self.TICK_INTERVAL)
+        self.old_pos = None
+
+        self.sideGrips = [
+            SideGrip(self, QtCore.Qt.Edge.LeftEdge),
+            SideGrip(self, QtCore.Qt.Edge.TopEdge),
+            SideGrip(self, QtCore.Qt.Edge.RightEdge),
+            SideGrip(self, QtCore.Qt.Edge.BottomEdge),
+        ]
+        self.cornerGrips = [QtWidgets.QSizeGrip(self) for _ in range(4)]
+        for grip in self.cornerGrips:
+            grip.setStyleSheet("color: #21252b; background-color: #21252b;")
+
+    def setGripSize(self, size):
+        if size == self.GRIP_SIZE:
+            return
+        self.updateGrips()
+
+    def updateGrips(self):
+        self.setContentsMargins(*[self.GRIP_SIZE] * 4)
+
+        outRect = self.rect()
+        # an "inner" rect used for reference to set the geometries of size grips
+        inRect = outRect.adjusted(self.GRIP_SIZE, self.GRIP_SIZE,
+                                  -self.GRIP_SIZE, -self.GRIP_SIZE)
+
+        # top left
+        self.cornerGrips[0].setGeometry(
+            QtCore.QRect(outRect.topLeft(), inRect.topLeft()))
+        # top right
+        self.cornerGrips[1].setGeometry(
+            QtCore.QRect(outRect.topRight(), inRect.topRight()).normalized())
+        # bottom right
+        self.cornerGrips[2].setGeometry(
+            QtCore.QRect(inRect.bottomRight(), outRect.bottomRight()))
+        # bottom left
+        self.cornerGrips[3].setGeometry(
+            QtCore.QRect(outRect.bottomLeft(), inRect.bottomLeft()).normalized())
+
+        # left edge
+        self.sideGrips[0].setGeometry(
+            0, inRect.top(), self.GRIP_SIZE, inRect.height())
+        # top edge
+        self.sideGrips[1].setGeometry(
+            inRect.left(), 0, inRect.width(), self.GRIP_SIZE)
+        # right edge
+        self.sideGrips[2].setGeometry(
+            inRect.left() + inRect.width(),
+            inRect.top(), self.GRIP_SIZE, inRect.height())
+        # bottom edge
+        self.sideGrips[3].setGeometry(
+            self.GRIP_SIZE, inRect.top() + inRect.height(),
+            inRect.width(), self.GRIP_SIZE)
+
+    def resizeEvent(self, event):
+        QtWidgets.QMainWindow.resizeEvent(self, event)
+        self.updateGrips()
+
+    def toggle_menu(self):
+        if self.side_contents.isHidden():
+            self.side_contents.show()
+        else:
+            self.side_contents.hide()
+
+    def toggle_maximized(self):
+        if self.isMaximized():
+            self.showNormal()
+        else:
+            self.showMaximized()
+
+    def show_menu(self):
+        self.side_contents.setMinimumSize(QtCore.QSize(250, 0))
+        self.side_contents.setMaximumSize(QtCore.QSize(250, 16777215))
+
+    def mousePressEvent(self, event):
+        self.old_pos = event.globalPosition()
+
+    def mouseMoveEvent(self, event):
+        try:
+            delta = event.globalPosition() - self.old_pos
+        except TypeError:
+            return
+        self.move(int(self.x() + delta.x()), int(self.y() + delta.y()))
+        self.old_pos = event.globalPosition()
 
     def closeEvent(self, event):
         self.queue_out.put({"method": "logout"})
@@ -38,92 +134,28 @@ class Chat(QtWidgets.QMainWindow, object):
 
         event.accept()
 
-    def setup_ui(self):
-        self.setObjectName("MainWindow")
-        self.setWindowTitle("Secret Chat")
-        self.setStyleSheet(WINDOW)
-        self.resize(1108, 580)
-        self.setMaximumSize(1108, 580)
-        self.setMinimumSize(765, 585)
-        self.centralwidget = QtWidgets.QWidget(self)
-        self.centralwidget.setObjectName("centralwidget")
-        self.centralwidget.setStyleSheet(BACKGROUND)
-
-        self.new_message = InputWithAction(self.centralwidget, self.send)
-        self.new_message.setGeometry(QtCore.QRect(20, 460, 531, 101))
-        self.new_message.setObjectName("textEdit")
-        self.new_message.setStyleSheet(TEXT_AREA)
-
-        self.send_message = QtWidgets.QPushButton(self.centralwidget)
-        self.send_message.setGeometry(QtCore.QRect(560, 460, 191, 51))
-        self.send_message.setObjectName("pushButton")
-        self.send_message.setStyleSheet(BUTTON)
-
-        # self.select_file = QtWidgets.QPushButton(self.centralwidget)
-        # self.select_file.setGeometry(QtCore.QRect(560, 510, 91, 41))
-        # self.select_file.setObjectName("pushButton_2")
-
-        self.get_hash = QtWidgets.QPushButton(self.centralwidget)
-        self.get_hash.setGeometry(QtCore.QRect(560, 520, 191, 41))
-        self.get_hash.setObjectName("pushButton_3")
-        self.get_hash.setStyleSheet(BUTTON)
-
-        self.online_users = QtWidgets.QListWidget(self.centralwidget)
-        self.online_users.setGeometry(QtCore.QRect(770, 70, 321, 251))
-        self.online_users.setObjectName("listWidget")
-        self.online_users.setStyleSheet(LIST_AREA)
-
-        self.session_key = QtWidgets.QTextBrowser(self.centralwidget)
-        self.session_key.setGeometry(QtCore.QRect(770, 340, 321, 101))
-        self.session_key.setObjectName("plainTextEdit")
-        self.session_key.setStyleSheet(TEXT_AREA)
-
-        self.hash = QtWidgets.QPlainTextEdit(self.centralwidget)
-        self.hash.setGeometry(QtCore.QRect(770, 460, 321, 101))
-        self.hash.setObjectName("plainTextEdit_2")
-        self.hash.setStyleSheet(TEXT_AREA)
-
-        self.login = QtWidgets.QPushButton(self.centralwidget)
-        self.login.setGeometry(QtCore.QRect(940, 20, 151, 31))
-        self.login.setObjectName("pushButton_4")
-        self.login.setStyleSheet(BUTTON)
-
-        self.status = QtWidgets.QLabel(self.centralwidget)
-        self.status.setGeometry(QtCore.QRect(770, 20, 151, 31))
-        self.status.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        self.status.setObjectName("textBrowser")
-        self.status.setStyleSheet(TEXT_AREA_SMALL)
-
-        self.messages = QtWidgets.QListWidget(self.centralwidget)
-        self.messages.setGeometry(QtCore.QRect(20, 20, 731, 421))
-        self.messages.setObjectName("listWidget_2")
-        self.messages.setStyleSheet(LIST_AREA)
-
-        self.setCentralWidget(self.centralwidget)
-        QtCore.QMetaObject.connectSlotsByName(self)
-
-        self.login.clicked.connect(self.open_login_form)
-        self.send_message.clicked.connect(self.send)
-        self.get_hash.clicked.connect(self.calculate_hash)
-        self.timer.timeout.connect(self.check_queue)
-        self.timer.start(self.TICK_INTERVAL)
-
     def set_online_user(self, user):
         item = QtWidgets.QListWidgetItem()
         item.username = user
+        font = QtGui.QFont()
+        font.setFamily("Calibri")
+        font.setPointSize(11)
 
         widget = QtWidgets.QWidget()
         widget_user = QtWidgets.QLabel(user.login)
-        widget_user.setMaximumWidth(250)
         widget_user.setWordWrap(True)
+        widget_user.setFont(font)
         widget_layout = QtWidgets.QVBoxLayout()
         widget_layout.addWidget(widget_user)
 
         widget_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
         widget_layout.setSpacing(0)
-        widget_layout.setContentsMargins(7, 7, 7, 0)
-        widget_user.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
+        widget_layout.setContentsMargins(5, 5, 5, 0)
+        widget_user.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         widget_user.setStyleSheet(USERS)
+        size_policy = widget_user.sizePolicy()
+        size_policy.setHorizontalPolicy(QtWidgets.QSizePolicy.Policy.Expanding)
+        widget_user.setSizePolicy(size_policy)
 
         widget_layout.addStretch()
         widget.setLayout(widget_layout)
@@ -137,11 +169,20 @@ class Chat(QtWidgets.QMainWindow, object):
     def set_message(self, from_user, message, sent_at):
         item = QtWidgets.QListWidgetItem()
         item.username = from_user
+        font = QtGui.QFont()
+        font.setFamily("Calibri")
+        font.setPointSize(11)
 
         widget = QtWidgets.QWidget()
-        widget_message = QtWidgets.QLabel(f"[ {from_user} ]  [ {sent_at} ]\n\n{message}")
+        if from_user == self.me.login:
+            bar = f"{from_user} - {sent_at}"
+        else:
+            bar = f"{sent_at} - {from_user}"
+
+        widget_message = QtWidgets.QLabel(f"{bar}\n\n{message}")
         widget_message.setMaximumWidth(500)
         widget_message.setWordWrap(True)
+        widget_message.setFont(font)
         widget_layout = QtWidgets.QVBoxLayout()
         widget_layout.addWidget(widget_message)
 
@@ -191,7 +232,11 @@ class Chat(QtWidgets.QMainWindow, object):
             if self.connection_thread:
                 self.connection_thread = None
 
-            self.status.setText("UNAUTHORIZED")
+            self.logged_user.setText("UNAUTHORIZED")
+            self.status_text.setText("OFFLINE")
+            self.status_icon.setStyleSheet(
+                f"background-image: url({self.FILE_PATH}/icons/offline.png);\nbackground-position: center;\n"""
+            )
             self.login.setText("Войти")
             self.new_message.clear()
             self.session_key.clear()
@@ -304,7 +349,11 @@ class Chat(QtWidgets.QMainWindow, object):
         self.authorized = True
         self.me = User(payload["login"])
         self.login.setText("Выйти")
-        self.status.setText(self.me.login)
+        self.status_text.setText("ONLINE")
+        self.logged_user.setText(self.me.login)
+        self.status_icon.setStyleSheet(
+            f"background-image: url({self.FILE_PATH}/icons/online.png);\nbackground-position: center;\n"""
+        )
 
         for user in self.online_users_list:
             self.set_online_user(user)
@@ -394,11 +443,3 @@ class Chat(QtWidgets.QMainWindow, object):
             user.add_message(message)
         elif message.from_user == message.to_user == user.login:
             user.add_message(message)
-
-    def re_translate_ui(self):
-        _translate = QtCore.QCoreApplication.translate
-        self.send_message.setText(_translate("MainWindow", "Отправить"))
-        # self.select_file.setText(_translate("MainWindow", "Файл"))
-        self.get_hash.setText(_translate("MainWindow", "Хэш"))
-        self.login.setText(_translate("MainWindow", "Войти"))
-        self.status.setText("UNAUTHORIZED")

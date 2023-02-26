@@ -1,5 +1,5 @@
 from PyQt6 import QtWidgets
-from app.client.chat import Chat
+from app.client.qtapp.chat import Chat
 
 
 if __name__ == "__main__":
