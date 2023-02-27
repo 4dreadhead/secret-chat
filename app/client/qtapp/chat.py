@@ -12,7 +12,7 @@ from app.client.qtapp.widgets import SideGrip
 
 class Chat(QtWidgets.QMainWindow, UiMainWindow, object):
     TICK_INTERVAL = 150
-    GRIP_SIZE = 1
+    GRIP_SIZE = 4
 
     def __init__(self):
         super().__init__()
@@ -45,14 +45,12 @@ class Chat(QtWidgets.QMainWindow, UiMainWindow, object):
         self.old_pos = None
 
         self.sideGrips = [
-            SideGrip(self, QtCore.Qt.Edge.LeftEdge),
-            SideGrip(self, QtCore.Qt.Edge.TopEdge),
-            SideGrip(self, QtCore.Qt.Edge.RightEdge),
-            SideGrip(self, QtCore.Qt.Edge.BottomEdge),
+            SideGrip(self, QtCore.Qt.Edge.LeftEdge, self.GRIP_SIZE),
+            SideGrip(self, QtCore.Qt.Edge.TopEdge, self.GRIP_SIZE),
+            SideGrip(self, QtCore.Qt.Edge.RightEdge, self.GRIP_SIZE),
+            SideGrip(self, QtCore.Qt.Edge.BottomEdge, self.GRIP_SIZE),
         ]
         self.cornerGrips = [QtWidgets.QSizeGrip(self) for _ in range(4)]
-        for grip in self.cornerGrips:
-            grip.setStyleSheet("color: #21252b; background-color: #21252b;")
 
     def setGripSize(self, size):
         if size == self.GRIP_SIZE:
@@ -63,22 +61,16 @@ class Chat(QtWidgets.QMainWindow, UiMainWindow, object):
         self.setContentsMargins(*[self.GRIP_SIZE] * 4)
 
         outRect = self.rect()
-        # an "inner" rect used for reference to set the geometries of size grips
-        inRect = outRect.adjusted(self.GRIP_SIZE, self.GRIP_SIZE,
-                                  -self.GRIP_SIZE, -self.GRIP_SIZE)
+        inRect = outRect.adjusted(self.GRIP_SIZE, self.GRIP_SIZE, -self.GRIP_SIZE, -self.GRIP_SIZE)
 
-        # top left
-        self.cornerGrips[0].setGeometry(
-            QtCore.QRect(outRect.topLeft(), inRect.topLeft()))
-        # top right
-        self.cornerGrips[1].setGeometry(
-            QtCore.QRect(outRect.topRight(), inRect.topRight()).normalized())
-        # bottom right
-        self.cornerGrips[2].setGeometry(
-            QtCore.QRect(inRect.bottomRight(), outRect.bottomRight()))
-        # bottom left
-        self.cornerGrips[3].setGeometry(
-            QtCore.QRect(outRect.bottomLeft(), inRect.bottomLeft()).normalized())
+        rect_top_left = QtCore.QRect(outRect.topLeft(), inRect.topLeft())
+        rect_top_right = QtCore.QRect(outRect.topRight(), inRect.topRight()).normalized()
+        rect_bottom_left = QtCore.QRect(outRect.bottomLeft(), inRect.bottomLeft()).normalized()
+        rect_bottom_right = QtCore.QRect(inRect.bottomRight(), outRect.bottomRight())
+        self.cornerGrips[0].setGeometry(rect_top_left)
+        self.cornerGrips[1].setGeometry(rect_top_right)
+        self.cornerGrips[2].setGeometry(rect_bottom_right)
+        self.cornerGrips[3].setGeometry(rect_bottom_left)
 
         # left edge
         self.sideGrips[0].setGeometry(

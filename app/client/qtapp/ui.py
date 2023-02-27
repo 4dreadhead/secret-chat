@@ -25,6 +25,9 @@ class UiMainWindow(object):
         self.centralwidget.setFont(font)
         self.centralwidget.setStyleSheet("QWidget {\n"
 "    background-color: #21252b;\n"
+"}\n"
+"QFrame {\n"
+"border: 1px solid #21252b;\n"
 "}")
         self.centralwidget.setObjectName("centralwidget")
         self.horizontalLayout = QtWidgets.QHBoxLayout(self.centralwidget)

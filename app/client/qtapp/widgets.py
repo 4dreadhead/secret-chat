@@ -43,8 +43,9 @@ class InputWithAction(QtWidgets.QPlainTextEdit):
 
 
 class SideGrip(QtWidgets.QWidget):
-    def __init__(self, parent, edge):
+    def __init__(self, parent, edge, grip_size):
         QtWidgets.QWidget.__init__(self, parent)
+        self.grip_size = grip_size
         if edge == QtCore.Qt.Edge.LeftEdge:
             self.setCursor(QtCore.Qt.CursorShape.SizeHorCursor)
             self.resizeFunc = self.resizeLeft
@@ -61,11 +62,9 @@ class SideGrip(QtWidgets.QWidget):
 
     def paintEvent(self, event):
         painter = QtGui.QPainter(self)
-        painter.setPen(QtGui.QColor("#21252b"))
-        painter.drawLine(0, 0, 0, self.height())
-        painter.drawLine(self.width(), 0, self.width(), self.height())
-        painter.drawLine(0, 0, self.width(), 0)
-        painter.drawLine(0, self.height(), self.width(), self.height())
+        pen = QtGui.QPen(QtGui.QColor("#21252b"), 2 * self.grip_size)
+        painter.setPen(pen)
+        painter.drawRect(0, 0, self.width(), self.height())
 
     def resizeLeft(self, delta):
         window = self.window()
